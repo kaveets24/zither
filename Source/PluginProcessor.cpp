@@ -20,6 +20,28 @@ ZitherAudioProcessor::ZitherAudioProcessor()
       parameters (*this, nullptr, "ZitherState", zither::param::createLayout())
 {
     noteToString.fill (-1);
+    parameters.state.setProperty (visualsProperty, true, nullptr);
+}
+
+void ZitherAudioProcessor::strikeString (int stringIndex, float velocity)
+{
+    const auto scope = uiStrikeFifo.write (1);
+    if (scope.blockSize1 > 0)
+        uiStrikes[static_cast<size_t> (scope.startIndex1)] = { stringIndex, velocity };
+    else if (scope.blockSize2 > 0)
+        uiStrikes[static_cast<size_t> (scope.startIndex2)] = { stringIndex, velocity };
+}
+
+void ZitherAudioProcessor::publishStringActivity() noexcept
+{
+    for (int i = 0; i < zither::Tuning::kMaxStrings; ++i)
+    {
+        auto& level = stringLevels[static_cast<size_t> (i)];
+        if (const float peak = strings.takePeak (i); peak > level.load (std::memory_order_relaxed))
+            level.store (peak, std::memory_order_relaxed);
+
+        strikeCounts[static_cast<size_t> (i)].store (strings.getStrikeCount (i), std::memory_order_relaxed);
+    }
 }
 
 bool ZitherAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -133,8 +155,15 @@ void ZitherAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     const int numSamples = buffer.getNumSamples();
     buffer.clear();
 
-    keyboardState.processNextMidiBuffer (midi, 0, numSamples, true);
     updateParameters();
+
+    {
+        const auto scope = uiStrikeFifo.read (uiStrikeFifo.getNumReady());
+        scope.forEach ([this] (int index) {
+            const auto& s = uiStrikes[static_cast<size_t> (index)];
+            strings.excite (s.stringIndex, s.velocity);
+        });
+    }
 
     auto* left = buffer.getWritePointer (0);
     auto* right = buffer.getWritePointer (1);
@@ -165,6 +194,7 @@ void ZitherAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     for (; event != midi.cend(); ++event)
         handleMidi ((*event).getMessage());
 
+    publishStringActivity();
     fx.process (buffer);
 
     for (int i = 0; i < numSamples; ++i)

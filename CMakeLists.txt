@@ -50,7 +50,11 @@ juce_add_plugin(Zither
 target_sources(Zither PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
-    Source/fx/FxChain.cpp)
+    Source/fx/FxChain.cpp
+    Source/ui/AquaLookAndFeel.cpp
+    Source/ui/ControlPanel.cpp
+    Source/ui/StringField.cpp
+    Source/ui/WaterScene.cpp)
 
 target_compile_definitions(Zither PUBLIC
     JUCE_WEB_BROWSER=0

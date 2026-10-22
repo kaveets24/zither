@@ -6,7 +6,9 @@
 #include "tuning/Tuning.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
-#include <juce_audio_utils/juce_audio_utils.h>
+
+#include <array>
+#include <atomic>
 
 class ZitherAudioProcessor final : public juce::AudioProcessor
 {
@@ -39,16 +41,24 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState& getParameters() noexcept { return parameters; }
-    juce::MidiKeyboardState& getKeyboardState() noexcept { return keyboardState; }
+
+    // UI <-> audio, lock-free.
+    /** Message thread only: strikes a string directly (the on-screen strings bypass the strummer). */
+    void strikeString (int stringIndex, float velocity);
+    /** Peak level of a string since the UI last asked. */
+    float takeStringLevel (int stringIndex) noexcept { return stringLevels[static_cast<size_t> (stringIndex)].exchange (0.0f, std::memory_order_relaxed); }
+    uint32_t getStrikeCount (int stringIndex) const noexcept { return strikeCounts[static_cast<size_t> (stringIndex)].load (std::memory_order_relaxed); }
+
+    static constexpr auto visualsProperty = "visuals";
 
 private:
     void updateParameters();
     void handleMidi (const juce::MidiMessage&);
+    void publishStringActivity() noexcept;
     float getValue (const char* id) const { return parameters.getRawParameterValue (id)->load(); }
     int getIndex (const char* id) const { return static_cast<int> (getValue (id)); }
 
     juce::AudioProcessorValueTreeState parameters;
-    juce::MidiKeyboardState keyboardState;
 
     zither::Tuning tuning;
     zither::TuningSettings currentTuning;
@@ -63,6 +73,18 @@ private:
     std::array<bool, zither::Tuning::kMaxStrings> pendingDamp {};
     bool sustainHeld = false;
     float releaseDamping = 0.0f;
+
+    struct UiStrike
+    {
+        int stringIndex;
+        float velocity;
+    };
+    static constexpr int kUiStrikeCapacity = 256;
+    juce::AbstractFifo uiStrikeFifo { kUiStrikeCapacity };
+    std::array<UiStrike, kUiStrikeCapacity> uiStrikes {};
+
+    std::array<std::atomic<float>, zither::Tuning::kMaxStrings> stringLevels {};
+    std::array<std::atomic<uint32_t>, zither::Tuning::kMaxStrings> strikeCounts {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ZitherAudioProcessor)
 };

@@ -1,6 +1,8 @@
 #include "StringBank.h"
 
+#include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace zither
 {
@@ -70,6 +72,12 @@ void StringBank::excite (int stringIndex, float velocity) noexcept
     exciters[static_cast<size_t> (stringIndex)].trigger (exciterSettings, velocity, s.getPeriodSamples(), rng);
     s.setDamped (false);
     s.wake();
+    ++strikeCounts[static_cast<size_t> (stringIndex)];
+}
+
+float StringBank::takePeak (int stringIndex) noexcept
+{
+    return std::exchange (peaks[static_cast<size_t> (stringIndex)], 0.0f);
 }
 
 void StringBank::setDamped (int stringIndex, bool shouldBeDamped) noexcept
@@ -89,13 +97,17 @@ void StringBank::render (float* left, float* right, int numSamples) noexcept
         auto& e = exciters[i];
         const float gl = gainLeft[i];
         const float gr = gainRight[i];
+        float peak = peaks[i];
 
         for (int n = 0; n < numSamples; ++n)
         {
             const float v = s.processSample (e.nextSample());
             left[n] += v * gl;
             right[n] += v * gr;
+            peak = std::max (peak, std::abs (v));
         }
+
+        peaks[i] = peak;
     }
 
     // DC blocker on the summed output (the string loops pass DC almost unattenuated).

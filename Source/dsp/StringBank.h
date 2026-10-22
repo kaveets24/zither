@@ -34,10 +34,16 @@ public:
 
     int getNumStrings() const noexcept { return numStrings; }
 
+    /** Peak output of a string since the last call (for visualization). */
+    float takePeak (int stringIndex) noexcept;
+    uint32_t getStrikeCount (int stringIndex) const noexcept { return strikeCounts[static_cast<size_t> (stringIndex)]; }
+
 private:
     std::array<WaveguideString, kMaxStrings> strings;
     std::array<Exciter, kMaxStrings> exciters;
     std::array<float, kMaxStrings> gainLeft {}, gainRight {};
+    std::array<float, kMaxStrings> peaks {};
+    std::array<uint32_t, kMaxStrings> strikeCounts {};
     ExciterSettings exciterSettings;
     int numStrings = 0;
     uint32_t rng = 0x9E3779B9u;

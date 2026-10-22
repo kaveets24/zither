@@ -32,9 +32,17 @@ With full Xcode installed, `cmake -B build -G Xcode` gives you an Xcode project 
 
 The DSP core (`dsp/`, `tuning/`) is plain C++20 with no JUCE dependency, and is unit tested in `tests/`.
 
+## Interface
+
+An underwater grotto with slowly melting violet walls. The strings hang in the water: they vibrate as they
+ring, send ripples and bubbles from where they were struck, and can be played by dragging across them.
+One frosted-glass panel holds paged controls (tune · strike · string · strum · space). The **visuals** toggle
+freezes the scene into a still, low-CPU frame. See [CLAUDE.md](CLAUDE.md) for the design language and core values.
+
 ## Roadmap
 
 1. ✅ Scaffold, waveguide string bank, tuned-zither mapping + strum, phaser/delay/reverb
-2. Sympathetic bridge bus (undamped strings ring in sympathy), shimmer reverb (octave-up in the feedback loop), magnetic pickup + saturation, self-sounding drone strings, hammer-roll / tremolo gesture
-3. Custom UI (horizontal strings, drag to strum), mood presets, MPE/aftertouch swells
-4. Scala `.scl` import, just intonation and microtonal tunings
+2. ✅ Aquatic UI: melting-wall scene, string visualizer with touch strumming, paged minimal controls
+3. Sympathetic bridge bus (undamped strings ring in sympathy), shimmer reverb (octave-up in the feedback loop), magnetic pickup + saturation, self-sounding drone strings, hammer-roll / tremolo gesture
+4. Mood presets, MPE/aftertouch swells
+5. Scala `.scl` import, just intonation and microtonal tunings
