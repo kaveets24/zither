@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.22)
 
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
+# One universal binary loads in Apple Silicon hosts, Intel Macs and hosts running under Rosetta.
+# Must be set before project(). For faster local iteration, configure with -DCMAKE_OSX_ARCHITECTURES=arm64.
+set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures to build")
 
 project(Zither VERSION 0.1.0 LANGUAGES C CXX)
 
@@ -47,25 +50,32 @@ juce_add_plugin(Zither
     VST3_CATEGORIES             Instrument Synth
     AU_MAIN_TYPE                kAudioUnitType_MusicDevice)
 
-target_sources(Zither PRIVATE
-    Source/PluginProcessor.cpp
-    Source/PluginEditor.cpp
-    Source/fx/FxChain.cpp
-    Source/ui/AquaLookAndFeel.cpp
-    Source/ui/ControlPanel.cpp
-    Source/ui/StringField.cpp
-    Source/ui/WaterScene.cpp)
+# Shared with the plugin state tests, which build them into a console app.
+set(ZITHER_PLUGIN_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginProcessor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginEditor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/fx/FxChain.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/ui/AquaLookAndFeel.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/ui/ControlPanel.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/ui/StringField.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/ui/WaterScene.cpp)
+set(ZITHER_JUCE_DEFINITIONS
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0)
+set(ZITHER_JUCE_MODULES
+    juce::juce_audio_utils
+    juce::juce_dsp)
+
+target_sources(Zither PRIVATE ${ZITHER_PLUGIN_SOURCES})
 
 target_compile_definitions(Zither PUBLIC
-    JUCE_WEB_BROWSER=0
-    JUCE_USE_CURL=0
+    ${ZITHER_JUCE_DEFINITIONS}
     JUCE_VST3_CAN_REPLACE_VST2=0)
 
 target_link_libraries(Zither
     PRIVATE
         zither_core
-        juce::juce_audio_utils
-        juce::juce_dsp
+        ${ZITHER_JUCE_MODULES}
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags

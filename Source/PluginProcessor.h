@@ -49,9 +49,17 @@ public:
     float takeStringLevel (int stringIndex) noexcept { return stringLevels[static_cast<size_t> (stringIndex)].exchange (0.0f, std::memory_order_relaxed); }
     uint32_t getStrikeCount (int stringIndex) const noexcept { return strikeCounts[static_cast<size_t> (stringIndex)].load (std::memory_order_relaxed); }
 
+    // Non-parameter session state, stored as properties on the APVTS tree.
     static constexpr auto visualsProperty = "visuals";
+    static constexpr auto editorWidthProperty = "editorWidth";
+    static constexpr auto editorHeightProperty = "editorHeight";
 
 private:
+    // Bump when the saved layout changes, and migrate older sessions in setStateInformation.
+    // Sessions saved before versioning existed have no stateVersion property and read as 0.
+    static constexpr int kStateVersion = 1;
+    static constexpr auto stateVersionProperty = "stateVersion";
+
     void updateParameters();
     void handleMidi (const juce::MidiMessage&);
     void publishStringActivity() noexcept;
