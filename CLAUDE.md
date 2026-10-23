@@ -82,7 +82,12 @@ Source/
   ui/                 Palette, AquaLookAndFeel, WaterScene (surface waves, light, swells),
                       StringField (strings visualizer + touch strumming), ControlPanel (paged controls)
 tests/                Catch2 tests for the core
+docs/wiki/            Learning wiki: one page per DSP concept, linked to the code
 ```
+
+The wiki in `docs/wiki/` is the owner's learning notebook. When DSP behaviour changes, update the matching page in the
+same branch so its formulas and code excerpts stay true. `learning-log.md` is the owner's personal log: don't write
+entries there unless asked.
 
 ## Build and test
 
