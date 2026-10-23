@@ -10,8 +10,6 @@ inline const juce::Colour lagoon    { 0xff12485a };
 inline const juce::Colour aqua      { 0xff7fe7d9 };
 inline const juce::Colour pearl     { 0xffe8f4f0 };
 inline const juce::Colour coral     { 0xffe08aa6 };
-inline const juce::Colour violet    { 0xff6b4fa8 };
-inline const juce::Colour melt      { 0xff2a1f5c };
 inline const juce::Colour mist      { 0xff9fb8c4 };
 
 /** Lowercase, letter-spaced UI type. */

@@ -9,7 +9,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 /**
-    An underwater grotto with melting walls, the strings hanging in the water, and one glass panel of controls.
+    Open water under a rippling surface, the strings hanging in the water, and one glass panel of controls.
     One 30 Hz timer drives everything. With visuals off, the world freezes into a still frame.
 */
 class ZitherAudioProcessorEditor final : public juce::AudioProcessorEditor,
