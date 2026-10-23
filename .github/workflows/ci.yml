@@ -22,11 +22,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # JUCE is compiled twice (plugin and state tests) for two architectures, which takes ~40 min cold on
+      # a hosted runner. ccache keeps the object files between runs, so only changed sources rebuild.
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2.24
+        with:
+          key: macos-universal-release
+          max-size: 2G
+          evict-old-files: job
+
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build plugin and tests
-        run: cmake --build build --target zither_tests zither_plugin_tests Zither_All --parallel
+        run: |
+          cmake --build build --target zither_tests zither_plugin_tests Zither_All --parallel
+          ccache --show-stats
 
       - name: Unit tests
         run: ctest --test-dir build --output-on-failure
