@@ -24,6 +24,25 @@ Builds are universal (Apple Silicon + Intel) by default. For faster local builds
 - AU validation: `auval -v aumu Zthr Flwi`. If a DAW doesn't see a fresh build, run `killall -9 AudioComponentRegistrar`.
 - The manufacturer code `Flwi` and company name in `CMakeLists.txt` are placeholders. Change them before distributing.
 
+## Realtime safety
+
+Zither follows standard audio-plugin practice: **nothing on the audio thread may block.** The host gives `processBlock`
+a hard deadline for every buffer (2.7 ms at 48 kHz with 128-sample blocks). Missing it even once is heard as a loud
+click, pop or dropout, so anything that can take an unpredictable amount of time is forbidden there:
+
+- no memory allocation or freeing (`new`, growing a `std::vector`, building a `juce::String`)
+- no locks or waiting on other threads (mutexes, `CriticalSection`, condition variables)
+- no file, network or console I/O, including logging and `DBG`
+- no calls into the GUI or message thread, and no unbounded loops
+
+Every buffer is sized in `prepareToPlay`. The UI and audio threads talk only through lock-free channels: atomics for
+levels and parameters, and an `AbstractFifo` for on-screen strikes (if it's full, a strike is dropped, not waited on).
+`juce::ScopedNoDenormals` prevents the CPU spikes that denormals cause in long, decaying tails. CI runs pluginval at
+strictness 10 on every change.
+
+The rules for contributors are in [CLAUDE.md](CLAUDE.md). The wiki's [realtime safety](docs/wiki/09-realtime-safety.md)
+page explains why they matter.
+
 ## How it gets the sound
 
 | Idea | Where |
