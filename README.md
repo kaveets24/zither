@@ -32,6 +32,9 @@ With full Xcode installed, `cmake -B build -G Xcode` gives you an Xcode project 
 
 The DSP core (`dsp/`, `tuning/`) is plain C++20 with no JUCE dependency, and is unit tested in `tests/`.
 
+New to plugin DSP? The [DSP wiki](docs/wiki/README.md) explains every concept the instrument uses, from samples and
+filters to waveguide strings, with links into the code.
+
 ## Interface
 
 An underwater grotto with slowly melting violet walls. The strings hang in the water: they vibrate as they
