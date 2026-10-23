@@ -33,7 +33,8 @@ These define the instrument. Don't trade them away for features.
   44.1/48/96 kHz across the inharmonicity range.
 - **Sample-rate independent.** Specify filters in Hz/seconds, never per sample.
 - **Parameter IDs are a contract.** IDs in `Source/Parameters.h` are saved in user sessions. Never rename or remove
-  one. Add new ones with a version hint.
+  one. Add new ones with a version hint. When the saved state's layout changes, bump `kStateVersion` in
+  `PluginProcessor.h` and migrate older sessions in `setStateInformation`.
 - **Warnings-clean** in our own code (JUCE's recommended warning flags plus `-Wall -Wextra -Wshadow -Wconversion` on the core).
 
 ## Functionality (current)
@@ -81,7 +82,7 @@ Source/
   fx/                 FxChain (JUCE dsp)
   ui/                 Palette, AquaLookAndFeel, WaterScene (surface waves, light, swells),
                       StringField (strings visualizer + touch strumming), ControlPanel (paged controls)
-tests/                Catch2 tests for the core
+tests/                Catch2 tests: the core (zither_tests) and session state compatibility (zither_plugin_tests)
 docs/wiki/            Learning wiki: one page per DSP concept, linked to the code
 ```
 
@@ -95,11 +96,16 @@ entries there unless asked.
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target Zither_All -j        # also installs AU/VST3 to ~/Library/Audio/Plug-Ins
 cmake --build build --target zither_tests -j && ./build/tests/zither_tests
+cmake --build build --target zither_plugin_tests -j && ctest --test-dir build   # + session save/load compatibility
 auval -v aumu Zthr Flwi                           # AU validation
+pluginval --strictness-level 10 --validate build/Zither_artefacts/Release/VST3/Zither.vst3
 open build/Zither_artefacts/Release/Standalone/Zither.app
 ```
 
 This machine has the Command Line Tools only (no Xcode.app), so the build uses the Makefile generator.
+Builds are universal (`arm64;x86_64`) by default; add `-DCMAKE_OSX_ARCHITECTURES=arm64` for faster local iteration.
+CI (`.github/workflows/ci.yml`) builds universal, runs the tests, pluginval at strictness 10 and auval on every push
+and PR. After DSP or state changes, run pluginval locally before pushing.
 
 ## Code style
 

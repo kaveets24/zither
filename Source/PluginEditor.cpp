@@ -8,6 +8,10 @@ constexpr int kHeaderHeight = 48;
 constexpr int kPanelHeight = 150;
 constexpr int kPanelMargin = 16;
 
+constexpr int kMinWidth = 760, kMinHeight = 520;
+constexpr int kMaxWidth = 1800, kMaxHeight = 1200;
+constexpr int kDefaultWidth = 960, kDefaultHeight = 640;
+
 const char* const noteNames[] = { "c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b" };
 } // namespace
 
@@ -17,6 +21,11 @@ ZitherAudioProcessorEditor::ZitherAudioProcessorEditor (ZitherAudioProcessor& p)
       stringField (p),
       controls (p.getParameters())
 {
+    // Read the saved size before anything can call resized(), which writes the current size back.
+    const auto& state = zitherProcessor.getParameters().state;
+    const int savedWidth = state.getProperty (ZitherAudioProcessor::editorWidthProperty, kDefaultWidth);
+    const int savedHeight = state.getProperty (ZitherAudioProcessor::editorHeightProperty, kDefaultHeight);
+
     setLookAndFeel (&lookAndFeel);
 
     addAndMakeVisible (scene);
@@ -24,7 +33,7 @@ ZitherAudioProcessorEditor::ZitherAudioProcessorEditor (ZitherAudioProcessor& p)
     addAndMakeVisible (controls);
     addAndMakeVisible (visualsToggle);
 
-    const bool visuals = zitherProcessor.getParameters().state.getProperty (ZitherAudioProcessor::visualsProperty, true);
+    const bool visuals = state.getProperty (ZitherAudioProcessor::visualsProperty, true);
     visualsToggle.setToggleState (visuals, juce::dontSendNotification);
     visualsToggle.onClick = [this] { setVisualsEnabled (visualsToggle.getToggleState()); };
 
@@ -33,8 +42,8 @@ ZitherAudioProcessorEditor::ZitherAudioProcessorEditor (ZitherAudioProcessor& p)
     startTimerHz (30);
 
     setResizable (true, true);
-    setResizeLimits (760, 520, 1800, 1200);
-    setSize (960, 640);
+    setResizeLimits (kMinWidth, kMinHeight, kMaxWidth, kMaxHeight);
+    setSize (juce::jlimit (kMinWidth, kMaxWidth, savedWidth), juce::jlimit (kMinHeight, kMaxHeight, savedHeight));
 }
 
 ZitherAudioProcessorEditor::~ZitherAudioProcessorEditor()
@@ -101,6 +110,11 @@ void ZitherAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
 
 void ZitherAudioProcessorEditor::resized()
 {
+    // The window size lives in the processor's state, so it survives the editor closing and the session reloading.
+    auto& state = zitherProcessor.getParameters().state;
+    state.setProperty (ZitherAudioProcessor::editorWidthProperty, getWidth(), nullptr);
+    state.setProperty (ZitherAudioProcessor::editorHeightProperty, getHeight(), nullptr);
+
     auto area = getLocalBounds();
     scene.setBounds (area);
 

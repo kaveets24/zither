@@ -20,6 +20,7 @@ ZitherAudioProcessor::ZitherAudioProcessor()
       parameters (*this, nullptr, "ZitherState", zither::param::createLayout())
 {
     noteToString.fill (-1);
+    parameters.state.setProperty (stateVersionProperty, kStateVersion, nullptr);
     parameters.state.setProperty (visualsProperty, true, nullptr);
 }
 
@@ -218,9 +219,17 @@ void ZitherAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 
 void ZitherAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    if (auto xml = getXmlFromBinary (data, sizeInBytes))
-        if (xml->hasTagName (parameters.state.getType()))
-            parameters.replaceState (juce::ValueTree::fromXml (*xml));
+    const auto xml = getXmlFromBinary (data, sizeInBytes);
+    if (xml == nullptr || ! xml->hasTagName (parameters.state.getType()))
+        return;
+
+    auto loaded = juce::ValueTree::fromXml (*xml);
+
+    // Nothing to migrate yet: every saved version so far shares one layout. The APVTS ignores unknown
+    // properties and parameters (from a newer build) and loads parameters the session lacks at their
+    // defaults. tests/PluginStateTests.cpp pins both, so a JUCE upgrade can't quietly change them.
+    loaded.setProperty (stateVersionProperty, kStateVersion, nullptr);
+    parameters.replaceState (loaded);
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

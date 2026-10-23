@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS (universal)
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      PLUGINVAL_VERSION: v1.0.4
+      ARTEFACTS: build/Zither_artefacts/Release
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # JUCE is compiled twice (plugin and state tests) for two architectures, which takes ~40 min cold on
+      # a hosted runner. ccache keeps the object files between runs, so only changed sources rebuild.
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2.24
+        with:
+          key: macos-universal-release
+          max-size: 2G
+          evict-old-files: job
+
+      - name: Configure
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Build plugin and tests
+        run: |
+          cmake --build build --target zither_tests zither_plugin_tests Zither_All --parallel
+          ccache --show-stats
+
+      - name: Unit tests
+        run: ctest --test-dir build --output-on-failure
+
+      # Shipping an arm64-only binary would silently fail to load on Intel Macs and in Rosetta hosts.
+      - name: Check universal binaries
+        run: |
+          for binary in "$ARTEFACTS/VST3/Zither.vst3/Contents/MacOS/Zither" \
+                        "$ARTEFACTS/AU/Zither.component/Contents/MacOS/Zither" \
+                        "$ARTEFACTS/Standalone/Zither.app/Contents/MacOS/Zither"; do
+            archs=$(lipo -archs "$binary")
+            echo "$binary: $archs"
+            [[ $archs == *arm64* && $archs == *x86_64* ]] || { echo "::error::$binary is not universal"; exit 1; }
+          done
+
+      - name: pluginval (VST3, strictness 10)
+        run: |
+          curl -fsSL -o pluginval.zip "https://github.com/Tracktion/pluginval/releases/download/$PLUGINVAL_VERSION/pluginval_macOS.zip"
+          unzip -q pluginval.zip
+          pluginval.app/Contents/MacOS/pluginval --strictness-level 10 --verbose \
+            --output-dir pluginval-logs --validate "$ARTEFACTS/VST3/Zither.vst3"
+
+      # Logic refuses to load an AU that fails auval. The build already copied the component to ~/Library.
+      - name: auval
+        run: |
+          killall -9 AudioComponentRegistrar || true
+          auval -strict -v aumu Zthr Flwi
+
+      - name: Upload pluginval logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pluginval-logs
+          path: pluginval-logs
+          if-no-files-found: ignore

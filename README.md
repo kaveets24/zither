@@ -11,10 +11,14 @@ Requirements: CMake ≥ 3.22 and the Xcode Command Line Tools (or full Xcode). J
 ```sh
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target Zither_All -j      # VST3, AU, Standalone; installs to ~/Library/Audio/Plug-Ins
-cmake --build build --target zither_tests -j && ctest --test-dir build
+cmake --build build --target zither_tests zither_plugin_tests -j && ctest --test-dir build
 ```
 
 With full Xcode installed, `cmake -B build -G Xcode` gives you an Xcode project instead.
+
+Builds are universal (Apple Silicon + Intel) by default. For faster local builds, configure with
+`-DCMAKE_OSX_ARCHITECTURES=arm64`. CI builds universal on every push and PR, then runs the unit tests,
+[pluginval](https://github.com/Tracktion/pluginval) at strictness 10 and `auval`.
 
 - Standalone app: `build/Zither_artefacts/Release/Standalone/Zither.app`
 - AU validation: `auval -v aumu Zthr Flwi`. If a DAW doesn't see a fresh build, run `killall -9 AudioComponentRegistrar`.
