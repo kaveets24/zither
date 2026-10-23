@@ -87,7 +87,7 @@ void ZitherAudioProcessorEditor::timerCallback()
 
 void ZitherAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
 {
-    // Header text floats over the melting ceiling.
+    // Header text floats just under the rippling surface.
     auto header = getLocalBounds().removeFromTop (kHeaderHeight).reduced (24, 0);
 
     g.setColour (zither::ui::palette::pearl.withAlpha (0.92f));

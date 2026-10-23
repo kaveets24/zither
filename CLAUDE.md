@@ -49,9 +49,11 @@ These define the instrument. Don't trade them away for features.
 
 ## Visual identity
 
-**An aquatic fantasy world with melting walls.** The player is inside an underwater grotto. Its violet-coral
-walls slowly melt: drips hang from the ceiling, swell and let go, and the side walls flow downward and pool.
-Light falls through the water in shafts and caustic ripples.
+**Open water, made of waves.** The player floats in calm water. Above, the rippling underside of the surface is
+layered waves that cross and drift in opposite directions. Below, soft swells roll slowly past and fade into the deep.
+Light falls through in shafts and caustic ripples. The middle, where the strings hang, stays calm and clear. Waves
+are anchored in px to the top and bottom edges, so they frame the strings at any window size. No solid walls or
+blobs: everything is translucent water and light.
 
 - **Clean and minimal interface.** The scene is the backdrop. Controls live on one frosted-glass panel, split into
   pages (Tune · Strike · String · Strum · Space) so only a handful of controls show at once. Thin ring knobs,
@@ -60,10 +62,10 @@ Light falls through the water in shafts and caustic ripples.
   vibrate with their real decay, send ripples out from the strike point, and release bubbles. Root strings are
   tinted coral, as harps mark their C strings. The **visuals** toggle (saved with the session) freezes all
   animation for a calm, static, low-CPU view. The strings stay playable either way.
-- **Motion has two speeds.** The world moves *slowly* (melting, light, drifting bubbles: periods of seconds to
+- **Motion has two speeds.** The world moves *slowly* (waves, light, drifting bubbles: periods of seconds to
   minutes). Only the strings shimmer quickly, and only while they sound.
 - **Palette** (`ui/Palette.h`): abyss `#040f1c` · deep water `#0a2a3d` · lagoon `#12485a` · aqua `#7fe7d9` ·
-  pearl `#e8f4f0` · coral `#e08aa6` · violet `#6b4fa8` · melt `#2a1f5c` · mist `#9fb8c4`.
+  pearl `#e8f4f0` · coral `#e08aa6` · mist `#9fb8c4`.
 - Animation runs from one 30 Hz editor timer. Keep paint cheap: straight lines for silent strings and fixed-size
   particle pools (no allocation per frame).
 
@@ -77,7 +79,7 @@ Source/
   dsp/                JUCE-free: WaveguideString, Exciter, StringBank, Random
   tuning/             JUCE-free: Tuning, Strummer
   fx/                 FxChain (JUCE dsp)
-  ui/                 Palette, AquaLookAndFeel, WaterScene (world + melting walls),
+  ui/                 Palette, AquaLookAndFeel, WaterScene (surface waves, light, swells),
                       StringField (strings visualizer + touch strumming), ControlPanel (paged controls)
 tests/                Catch2 tests for the core
 ```
@@ -103,6 +105,6 @@ members, `noexcept` on audio-path functions, and `static_cast` over C casts. Nam
 ## Roadmap
 
 1. ✅ Scaffold, waveguide strings, tuned mapping + strum, phaser/delay/reverb
-2. ✅ Aquatic UI: melting-wall scene, string visualizer with touch strumming, paged minimal controls
+2. ✅ Aquatic UI: wave scene, string visualizer with touch strumming, paged minimal controls
 3. Sympathetic bridge bus, shimmer reverb, magnetic pickup + saturation, drone strings, hammer roll
 4. Mood presets, MPE/aftertouch swells, Scala `.scl` / just-intonation tunings
