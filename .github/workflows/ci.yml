@@ -14,7 +14,8 @@ jobs:
   macos:
     name: macOS (universal)
     runs-on: macos-15
-    timeout-minutes: 60
+    # A cold cache (after a JUCE bump, or 7 days without a run) rebuilds everything.
+    timeout-minutes: 90
     env:
       PLUGINVAL_VERSION: v1.0.4
       ARTEFACTS: build/Zither_artefacts/Release
@@ -22,8 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # JUCE is compiled twice (plugin and state tests) for two architectures, which takes ~40 min cold on
-      # a hosted runner. ccache keeps the object files between runs, so only changed sources rebuild.
+      # JUCE is compiled twice (plugin and state tests) for two architectures, which is slow on a 3-core
+      # hosted runner. ccache keeps the object files between runs, so only changed sources rebuild.
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2.24
         with:
@@ -31,9 +32,11 @@ jobs:
           max-size: 2G
           evict-old-files: job
 
+      # Ninja, because the Makefile generator builds multiple --targets one after another, leaving cores idle.
       - name: Configure
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+          command -v ninja || brew install ninja
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build plugin and tests
