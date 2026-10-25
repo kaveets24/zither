@@ -19,6 +19,7 @@ jobs:
     env:
       PLUGINVAL_VERSION: v1.0.4
       ARTEFACTS: build/Zither_artefacts/Release
+      PRODUCT: Zither Aquatica
 
     steps:
       - uses: actions/checkout@v7
@@ -50,9 +51,9 @@ jobs:
       # Shipping an arm64-only binary would silently fail to load on Intel Macs and in Rosetta hosts.
       - name: Check universal binaries
         run: |
-          for binary in "$ARTEFACTS/VST3/Zither.vst3/Contents/MacOS/Zither" \
-                        "$ARTEFACTS/AU/Zither.component/Contents/MacOS/Zither" \
-                        "$ARTEFACTS/Standalone/Zither.app/Contents/MacOS/Zither"; do
+          for binary in "$ARTEFACTS/VST3/$PRODUCT.vst3/Contents/MacOS/$PRODUCT" \
+                        "$ARTEFACTS/AU/$PRODUCT.component/Contents/MacOS/$PRODUCT" \
+                        "$ARTEFACTS/Standalone/$PRODUCT.app/Contents/MacOS/$PRODUCT"; do
             archs=$(lipo -archs "$binary")
             echo "$binary: $archs"
             [[ $archs == *arm64* && $archs == *x86_64* ]] || { echo "::error::$binary is not universal"; exit 1; }
@@ -63,18 +64,78 @@ jobs:
           curl -fsSL -o pluginval.zip "https://github.com/Tracktion/pluginval/releases/download/$PLUGINVAL_VERSION/pluginval_macOS.zip"
           unzip -q pluginval.zip
           pluginval.app/Contents/MacOS/pluginval --strictness-level 10 --verbose \
-            --output-dir pluginval-logs --validate "$ARTEFACTS/VST3/Zither.vst3"
+            --output-dir pluginval-logs --validate "$ARTEFACTS/VST3/$PRODUCT.vst3"
 
       # Logic refuses to load an AU that fails auval. The build already copied the component to ~/Library.
       - name: auval
         run: |
           killall -9 AudioComponentRegistrar || true
-          auval -strict -v aumu Zthr Flwi
+          auval -strict -v aumu Zaqa Skvt
 
       - name: Upload pluginval logs
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: pluginval-logs
+          name: pluginval-logs-macos
           path: pluginval-logs
           if-no-files-found: ignore
+
+  windows:
+    name: Windows (x64)
+    runs-on: windows-2025
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    env:
+      PLUGINVAL_VERSION: v1.0.4
+      ARTEFACTS: build/Zither_artefacts/Release
+      PRODUCT: Zither Aquatica
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # The Visual Studio generator; JUCE's recommended flags add /MP, so each project compiles in parallel.
+      - name: Configure
+        run: cmake -B build
+
+      - name: Build plugin and tests
+        run: cmake --build build --config Release --target zither_tests zither_plugin_tests Zither_All --parallel
+
+      - name: Unit tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      # A plugin linked against the DLL runtime fails to load on machines without the matching VC++ redistributable.
+      - name: Check static MSVC runtime
+        run: |
+          vswhere="/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
+          dumpbin=$(cygpath -u "$("$vswhere" -latest -find 'VC/Tools/MSVC/**/bin/Hostx64/x64/dumpbin.exe' | head -n 1 | tr -d '\r')")
+          binary="$ARTEFACTS/VST3/$PRODUCT.vst3/Contents/x86_64-win/$PRODUCT.vst3"
+          "$dumpbin" -nologo -dependents "$binary"
+          if "$dumpbin" -nologo -dependents "$binary" | grep -iE 'vcruntime|msvcp'; then
+            echo "::error::$binary depends on the MSVC runtime DLLs"
+            exit 1
+          fi
+
+      - name: pluginval (VST3, strictness 10)
+        run: |
+          curl -fsSL -o pluginval.zip "https://github.com/Tracktion/pluginval/releases/download/$PLUGINVAL_VERSION/pluginval_Windows.zip"
+          unzip -q pluginval.zip
+          ./pluginval.exe --strictness-level 10 --verbose \
+            --output-dir pluginval-logs --validate "$ARTEFACTS/VST3/$PRODUCT.vst3"
+
+      - name: Upload pluginval logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pluginval-logs-windows
+          path: pluginval-logs
+          if-no-files-found: ignore
+
+      # Lets testers grab a build without a Windows toolchain: copy "Zither Aquatica.vst3" into C:\Program Files\Common Files\VST3.
+      # Uploading the parent folder keeps the .vst3 bundle folder itself in the zip.
+      - name: Upload VST3
+        uses: actions/upload-artifact@v7
+        with:
+          name: Zither-Aquatica-VST3-Windows-x64
+          path: ${{ env.ARTEFACTS }}/VST3/
