@@ -15,7 +15,7 @@ juce_add_console_app(zither_plugin_tests)
 target_sources(zither_plugin_tests PRIVATE PluginStateTests.cpp ${ZITHER_PLUGIN_SOURCES})
 target_compile_definitions(zither_plugin_tests PRIVATE
     ${ZITHER_JUCE_DEFINITIONS}
-    JucePlugin_Name="Zither")
+    JucePlugin_Name="Zither Aquatica")
 target_link_libraries(zither_plugin_tests
     PRIVATE
         zither_core

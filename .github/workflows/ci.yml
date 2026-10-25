@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+    # Pushing a vX.Y.Z tag also drafts a GitHub Release from the installers (see the release job).
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -19,6 +21,7 @@ jobs:
     env:
       PLUGINVAL_VERSION: v1.0.4
       ARTEFACTS: build/Zither_artefacts/Release
+      PRODUCT: Zither Aquatica
 
     steps:
       - uses: actions/checkout@v7
@@ -50,9 +53,9 @@ jobs:
       # Shipping an arm64-only binary would silently fail to load on Intel Macs and in Rosetta hosts.
       - name: Check universal binaries
         run: |
-          for binary in "$ARTEFACTS/VST3/Zither.vst3/Contents/MacOS/Zither" \
-                        "$ARTEFACTS/AU/Zither.component/Contents/MacOS/Zither" \
-                        "$ARTEFACTS/Standalone/Zither.app/Contents/MacOS/Zither"; do
+          for binary in "$ARTEFACTS/VST3/$PRODUCT.vst3/Contents/MacOS/$PRODUCT" \
+                        "$ARTEFACTS/AU/$PRODUCT.component/Contents/MacOS/$PRODUCT" \
+                        "$ARTEFACTS/Standalone/$PRODUCT.app/Contents/MacOS/$PRODUCT"; do
             archs=$(lipo -archs "$binary")
             echo "$binary: $archs"
             [[ $archs == *arm64* && $archs == *x86_64* ]] || { echo "::error::$binary is not universal"; exit 1; }
@@ -63,18 +66,146 @@ jobs:
           curl -fsSL -o pluginval.zip "https://github.com/Tracktion/pluginval/releases/download/$PLUGINVAL_VERSION/pluginval_macOS.zip"
           unzip -q pluginval.zip
           pluginval.app/Contents/MacOS/pluginval --strictness-level 10 --verbose \
-            --output-dir pluginval-logs --validate "$ARTEFACTS/VST3/Zither.vst3"
+            --output-dir pluginval-logs --validate "$ARTEFACTS/VST3/$PRODUCT.vst3"
 
       # Logic refuses to load an AU that fails auval. The build already copied the component to ~/Library.
       - name: auval
         run: |
           killall -9 AudioComponentRegistrar || true
-          auval -strict -v aumu Zthr Flwi
+          auval -strict -v aumu Zaqa Skvt
 
       - name: Upload pluginval logs
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: pluginval-logs
+          name: pluginval-logs-macos
           path: pluginval-logs
           if-no-files-found: ignore
+
+      # Packaging runs on every build, not only releases, so a broken installer shows up in the PR that broke it.
+      - name: Package installer
+        run: |
+          version=$(sed -nE 's/^project\(Zither VERSION ([0-9.]+).*/\1/p' CMakeLists.txt)
+          packaging/macos/build-pkg.sh "$ARTEFACTS" "$version" dist
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-macos
+          path: dist/
+          if-no-files-found: error
+
+  windows:
+    name: Windows (x64)
+    runs-on: windows-2025
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    env:
+      PLUGINVAL_VERSION: v1.0.4
+      ARTEFACTS: build/Zither_artefacts/Release
+      PRODUCT: Zither Aquatica
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # The Visual Studio generator; JUCE's recommended flags add /MP, so each project compiles in parallel.
+      - name: Configure
+        run: cmake -B build
+
+      - name: Build plugin and tests
+        run: cmake --build build --config Release --target zither_tests zither_plugin_tests Zither_All --parallel
+
+      - name: Unit tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      # A plugin linked against the DLL runtime fails to load on machines without the matching VC++ redistributable.
+      - name: Check static MSVC runtime
+        run: |
+          vswhere="/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
+          dumpbin=$(cygpath -u "$("$vswhere" -latest -find 'VC/Tools/MSVC/**/bin/Hostx64/x64/dumpbin.exe' | head -n 1 | tr -d '\r')")
+          binary="$ARTEFACTS/VST3/$PRODUCT.vst3/Contents/x86_64-win/$PRODUCT.vst3"
+          "$dumpbin" -nologo -dependents "$binary"
+          if "$dumpbin" -nologo -dependents "$binary" | grep -iE 'vcruntime|msvcp'; then
+            echo "::error::$binary depends on the MSVC runtime DLLs"
+            exit 1
+          fi
+
+      - name: pluginval (VST3, strictness 10)
+        run: |
+          curl -fsSL -o pluginval.zip "https://github.com/Tracktion/pluginval/releases/download/$PLUGINVAL_VERSION/pluginval_Windows.zip"
+          unzip -q pluginval.zip
+          ./pluginval.exe --strictness-level 10 --verbose \
+            --output-dir pluginval-logs --validate "$ARTEFACTS/VST3/$PRODUCT.vst3"
+
+      - name: Upload pluginval logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pluginval-logs-windows
+          path: pluginval-logs
+          if-no-files-found: ignore
+
+      # Setup.exe for most users, plus a zip of the bare VST3 for copying into Common Files\VST3 by hand.
+      # MSYS_NO_PATHCONV stops Git Bash rewriting ISCC's /D options as if they were paths.
+      - name: Package installer
+        run: |
+          version=$(sed -nE 's/^project\(Zither VERSION ([0-9.]+).*/\1/p' CMakeLists.txt)
+          iscc="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+          [ -x "$iscc" ] || choco install innosetup --no-progress -y
+          mkdir -p dist
+          MSYS_NO_PATHCONV=1 "$iscc" /Q "/DAppVersion=$version" "/DArtefacts=$(cygpath -w "$PWD/$ARTEFACTS")" \
+            "/DOutputDir=$(cygpath -w "$PWD/dist")" packaging/windows/ZitherAquatica.iss
+          (cd "$ARTEFACTS/VST3" && 7z a -bso0 "$OLDPWD/dist/$PRODUCT $version VST3 Windows.zip" "$PRODUCT.vst3")
+          ls -l dist
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-windows
+          path: dist/
+          if-no-files-found: error
+
+  # Only on vX.Y.Z tags. Always a draft: the release goes public when someone reviews it and clicks Publish.
+  release:
+    name: Draft release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # v0.2.0 and pre-release tags like v0.2.0-rc.1 must match project(Zither VERSION 0.2.0).
+      - name: Check the tag matches the version
+        run: |
+          version=$(sed -nE 's/^project\(Zither VERSION ([0-9.]+).*/\1/p' CMakeLists.txt)
+          tag="${GITHUB_REF_NAME#v}"
+          if [[ "$tag" != "$version" && "$tag" != "$version"-* ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match the version in CMakeLists.txt ($version)"
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: installer-*
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum -- * | tee SHA256SUMS.txt
+
+      - name: Draft the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=(--draft --generate-notes --title "Zither Aquatica ${GITHUB_REF_NAME#v}")
+          # 0.x versions and -rc/-beta tags are betas.
+          if [[ "$GITHUB_REF_NAME" == v0.* || "$GITHUB_REF_NAME" == *-* ]]; then
+            flags+=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" "${flags[@]}" dist/*

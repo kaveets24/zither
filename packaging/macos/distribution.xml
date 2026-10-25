@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Installer layout for build-pkg.sh: a licence page, then a choice per format (all on by default). -->
+<installer-gui-script minSpecVersion="2">
+    <title>Zither Aquatica</title>
+    <license file="LICENSE.txt"/>
+    <options customize="allow" require-scripts="false" hostArchitectures="arm64,x86_64"/>
+    <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
+    <volume-check>
+        <allowed-os-versions>
+            <os-version min="11.0"/>
+        </allowed-os-versions>
+    </volume-check>
+
+    <choices-outline>
+        <line choice="vst3"/>
+        <line choice="au"/>
+        <line choice="app"/>
+    </choices-outline>
+
+    <choice id="vst3" title="VST3 plug-in" description="For Ableton Live, Cubase, Reaper, Bitwig, Studio One and other VST3 hosts.">
+        <pkg-ref id="com.github.kaveets24.zitheraquatica.vst3"/>
+    </choice>
+    <choice id="au" title="Audio Unit" description="For Logic Pro, GarageBand and other Audio Unit hosts.">
+        <pkg-ref id="com.github.kaveets24.zitheraquatica.au"/>
+    </choice>
+    <choice id="app" title="Standalone app" description="Play Zither Aquatica on its own, without a DAW.">
+        <pkg-ref id="com.github.kaveets24.zitheraquatica.app"/>
+    </choice>
+
+    <pkg-ref id="com.github.kaveets24.zitheraquatica.vst3">vst3.pkg</pkg-ref>
+    <pkg-ref id="com.github.kaveets24.zitheraquatica.au">au.pkg</pkg-ref>
+    <pkg-ref id="com.github.kaveets24.zitheraquatica.app">app.pkg</pkg-ref>
+</installer-gui-script>

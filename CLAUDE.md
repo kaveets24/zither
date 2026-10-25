@@ -1,4 +1,4 @@
-# Zither: project guide
+# Zither Aquatica: project guide
 
 A physically modelled, open-tuned zither instrument (VST3 / AU / Standalone) built with JUCE 8.
 Its north star is the feeling of Laraaji's *Flow Goes The Universe* (1992): weightless, blissful,
@@ -84,6 +84,7 @@ Source/
                       StringField (strings visualizer + touch strumming), ControlPanel (paged controls)
 tests/                Catch2 tests: the core (zither_tests) and session state compatibility (zither_plugin_tests)
 docs/wiki/            Learning wiki: one page per DSP concept, linked to the code
+packaging/            Installers: macos/build-pkg.sh (.pkg), windows/ZitherAquatica.iss (Inno Setup)
 ```
 
 The wiki in `docs/wiki/` is the owner's learning notebook. When DSP behaviour changes, update the matching page in the
@@ -97,15 +98,37 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target Zither_All -j        # also installs AU/VST3 to ~/Library/Audio/Plug-Ins
 cmake --build build --target zither_tests -j && ./build/tests/zither_tests
 cmake --build build --target zither_plugin_tests -j && ctest --test-dir build   # + session save/load compatibility
-auval -v aumu Zthr Flwi                           # AU validation
-pluginval --strictness-level 10 --validate build/Zither_artefacts/Release/VST3/Zither.vst3
-open build/Zither_artefacts/Release/Standalone/Zither.app
+auval -v aumu Zaqa Skvt                           # AU validation
+pluginval --strictness-level 10 --validate "build/Zither_artefacts/Release/VST3/Zither Aquatica.vst3"
+open "build/Zither_artefacts/Release/Standalone/Zither Aquatica.app"
 ```
 
 This machine has the Command Line Tools only (no Xcode.app), so the build uses the Makefile generator.
 Builds are universal (`arm64;x86_64`) by default; add `-DCMAKE_OSX_ARCHITECTURES=arm64` for faster local iteration.
-CI (`.github/workflows/ci.yml`) builds universal, runs the tests, pluginval at strictness 10 and auval on every push
-and PR. After DSP or state changes, run pluginval locally before pushing.
+CI (`.github/workflows/ci.yml`) builds macOS universal and Windows x64 (MSVC), and runs the tests and pluginval at
+strictness 10 on both, plus auval on macOS, on every push and PR. There's no local Windows toolchain, so CI is the only
+MSVC check: keep code portable (no platform `#if`s outside JUCE, include what you use). After DSP or state changes,
+run pluginval locally before pushing.
+
+## Releasing
+
+Releases are built by CI from a tag and published by hand.
+
+1. Bump `project(Zither VERSION x.y.z)` in `CMakeLists.txt`. Hosts and both installers show this version. Merge to main.
+2. Tag and push: `git tag v0.1.0 && git push origin v0.1.0`. For a test or beta build, use a pre-release tag such as `v0.1.0-rc.1`.
+3. CI builds, validates and packages macOS and Windows, checks that the tag matches the CMake version, and drafts a GitHub
+   Release with the installers and `SHA256SUMS.txt`. 0.x and `-rc` tags are marked pre-release.
+4. Install from the draft on at least one machine, edit the notes, then **Publish**. Nothing is public until then.
+
+Before the first public release, run the manual host checks: Logic, Ableton and Reaper on macOS, and Reaper on Windows.
+In each, check save and reopen, automation, offline bounce, many instances, and opening and closing the editor.
+
+Never change after a release: the identity block in `juce_add_plugin` (product name, codes, bundle ID), the Inno Setup
+`AppId` in `packaging/windows/ZitherAquatica.iss`, or any parameter ID.
+
+Builds are unsigned for now: ad-hoc on macOS, unsigned on Windows. Signing goes into `packaging/macos/build-pkg.sh`
+(Developer ID, hardened runtime, notarization) and just before ISCC runs on Windows (Azure Trusted Signing), without
+changing the release flow.
 
 ## Code style
 

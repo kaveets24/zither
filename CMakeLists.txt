@@ -5,10 +5,27 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
 # Must be set before project(). For faster local iteration, configure with -DCMAKE_OSX_ARCHITECTURES=arm64.
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures to build")
 
+# Link the MSVC runtime statically (/MT) so users never hit "VCRUNTIME140.dll was not found" on Windows.
+# Set for every target, including fetched dependencies, so the runtimes can't mismatch at link time.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 project(Zither VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Sources are UTF-8. Without this MSVC reads them in the system code page and warns about non-ASCII comments.
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
+# Installing into ~/Library/Audio/Plug-Ins needs no special rights on macOS. On Windows the VST3 folder is
+# under Program Files, which needs admin, so a normal build would fail there; install by hand or with an installer.
+if(APPLE)
+    set(ZITHER_COPY_PLUGIN_AFTER_BUILD TRUE)
+else()
+    set(ZITHER_COPY_PLUGIN_AFTER_BUILD FALSE)
+endif()
 
 option(ZITHER_BUILD_TESTS "Build the DSP unit tests" ON)
 
@@ -30,23 +47,27 @@ add_library(zither_core STATIC
     Source/tuning/Strummer.cpp)
 target_include_directories(zither_core PUBLIC Source)
 set_target_properties(zither_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
-if(NOT MSVC)
+if(MSVC)
+    target_compile_options(zither_core PRIVATE /W4)
+else()
     target_compile_options(zither_core PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion)
 endif()
 
 juce_add_plugin(Zither
-    COMPANY_NAME                "Flow Instruments"
-    BUNDLE_ID                   com.flowinstruments.zither
-    PLUGIN_MANUFACTURER_CODE    Flwi
-    PLUGIN_CODE                 Zthr
+    # Hosts identify the plugin in saved sessions by these. They're permanent: never change them after a release.
+    PRODUCT_NAME                "Zither Aquatica"
+    COMPANY_NAME                "Steven Kveton"
+    COMPANY_WEBSITE             "https://github.com/kaveets24/zither"
+    BUNDLE_ID                   com.github.kaveets24.zitheraquatica
+    PLUGIN_MANUFACTURER_CODE    Skvt
+    PLUGIN_CODE                 Zaqa
     FORMATS                     AU VST3 Standalone
-    PRODUCT_NAME                "Zither"
     IS_SYNTH                    TRUE
     NEEDS_MIDI_INPUT            TRUE
     NEEDS_MIDI_OUTPUT           FALSE
     IS_MIDI_EFFECT              FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS TRUE
-    COPY_PLUGIN_AFTER_BUILD     TRUE
+    COPY_PLUGIN_AFTER_BUILD     ${ZITHER_COPY_PLUGIN_AFTER_BUILD}
     VST3_CATEGORIES             Instrument Synth
     AU_MAIN_TYPE                kAudioUnitType_MusicDevice)
 
