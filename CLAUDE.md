@@ -104,8 +104,10 @@ open build/Zither_artefacts/Release/Standalone/Zither.app
 
 This machine has the Command Line Tools only (no Xcode.app), so the build uses the Makefile generator.
 Builds are universal (`arm64;x86_64`) by default; add `-DCMAKE_OSX_ARCHITECTURES=arm64` for faster local iteration.
-CI (`.github/workflows/ci.yml`) builds universal, runs the tests, pluginval at strictness 10 and auval on every push
-and PR. After DSP or state changes, run pluginval locally before pushing.
+CI (`.github/workflows/ci.yml`) builds macOS universal and Windows x64 (MSVC), and runs the tests and pluginval at
+strictness 10 on both, plus auval on macOS, on every push and PR. There's no local Windows toolchain, so CI is the only
+MSVC check: keep code portable (no platform `#if`s outside JUCE, include what you use). After DSP or state changes,
+run pluginval locally before pushing.
 
 ## Code style
 
