@@ -17,12 +17,28 @@ cmake --build build --target zither_tests zither_plugin_tests -j && ctest --test
 With full Xcode installed, `cmake -B build -G Xcode` gives you an Xcode project instead.
 
 Builds are universal (Apple Silicon + Intel) by default. For faster local builds, configure with
-`-DCMAKE_OSX_ARCHITECTURES=arm64`. CI builds universal on every push and PR, then runs the unit tests,
-[pluginval](https://github.com/Tracktion/pluginval) at strictness 10 and `auval`.
+`-DCMAKE_OSX_ARCHITECTURES=arm64`. CI builds on macOS (universal) and Windows (x64) for every push and PR, then runs
+the unit tests, [pluginval](https://github.com/Tracktion/pluginval) at strictness 10 and, on macOS, `auval`.
 
 - Standalone app: `build/Zither_artefacts/Release/Standalone/Zither.app`
 - AU validation: `auval -v aumu Zthr Flwi`. If a DAW doesn't see a fresh build, run `killall -9 AudioComponentRegistrar`.
 - The manufacturer code `Flwi` and company name in `CMakeLists.txt` are placeholders. Change them before distributing.
+
+### Windows
+
+Requirements: CMake ≥ 3.22 and Visual Studio 2022 or later with the *Desktop development with C++* workload.
+Windows builds VST3 and Standalone (AU is macOS-only), with the MSVC runtime linked statically, so users don't need
+a VC++ redistributable.
+
+```sh
+cmake -B build
+cmake --build build --config Release --target Zither_All --parallel
+cmake --build build --config Release --target zither_tests zither_plugin_tests --parallel && ctest --test-dir build -C Release
+```
+
+The build doesn't install the plugin, because the system VST3 folder needs admin rights. Copy
+`build/Zither_artefacts/Release/VST3/Zither.vst3` into `C:\Program Files\Common Files\VST3`. No Windows machine?
+Every CI run uploads a `Zither-VST3-Windows-x64` artifact that has passed pluginval.
 
 ## Realtime safety
 
