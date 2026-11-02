@@ -1,4 +1,4 @@
-# Zither: project guide
+# Zither Aquatica: project guide
 
 A physically modelled, open-tuned zither instrument (VST3 / AU / Standalone) built with JUCE 8.
 Its north star is the feeling of Laraaji's *Flow Goes The Universe* (1992): weightless, blissful,
@@ -97,9 +97,9 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target Zither_All -j        # also installs AU/VST3 to ~/Library/Audio/Plug-Ins
 cmake --build build --target zither_tests -j && ./build/tests/zither_tests
 cmake --build build --target zither_plugin_tests -j && ctest --test-dir build   # + session save/load compatibility
-auval -v aumu Zthr Flwi                           # AU validation
-pluginval --strictness-level 10 --validate build/Zither_artefacts/Release/VST3/Zither.vst3
-open build/Zither_artefacts/Release/Standalone/Zither.app
+auval -v aumu Zaqa Skvt                           # AU validation
+pluginval --strictness-level 10 --validate "build/Zither_artefacts/Release/VST3/Zither Aquatica.vst3"
+open "build/Zither_artefacts/Release/Standalone/Zither Aquatica.app"
 ```
 
 This machine has the Command Line Tools only (no Xcode.app), so the build uses the Makefile generator.

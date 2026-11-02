@@ -54,12 +54,14 @@ else()
 endif()
 
 juce_add_plugin(Zither
-    COMPANY_NAME                "Flow Instruments"
-    BUNDLE_ID                   com.flowinstruments.zither
-    PLUGIN_MANUFACTURER_CODE    Flwi
-    PLUGIN_CODE                 Zthr
+    # Hosts identify the plugin in saved sessions by these. They're permanent: never change them after a release.
+    PRODUCT_NAME                "Zither Aquatica"
+    COMPANY_NAME                "Steven Kveton"
+    COMPANY_WEBSITE             "https://github.com/kaveets24/zither"
+    BUNDLE_ID                   com.github.kaveets24.zitheraquatica
+    PLUGIN_MANUFACTURER_CODE    Skvt
+    PLUGIN_CODE                 Zaqa
     FORMATS                     AU VST3 Standalone
-    PRODUCT_NAME                "Zither"
     IS_SYNTH                    TRUE
     NEEDS_MIDI_INPUT            TRUE
     NEEDS_MIDI_OUTPUT           FALSE

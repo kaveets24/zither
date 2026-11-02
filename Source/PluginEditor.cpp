@@ -99,9 +99,13 @@ void ZitherAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
     // Header text floats just under the rippling surface.
     auto header = getLocalBounds().removeFromTop (kHeaderHeight).reduced (24, 0);
 
+    constexpr auto wordmark = "zither aquatica";
+    const auto wordmarkFont = zither::ui::palette::font (20.0f, 0.45f);
+    const int wordmarkWidth = juce::roundToInt (juce::GlyphArrangement::getStringWidth (wordmarkFont, wordmark)) + 24;
+
     g.setColour (zither::ui::palette::pearl.withAlpha (0.92f));
-    g.setFont (zither::ui::palette::font (20.0f, 0.45f));
-    g.drawText ("zither", header.removeFromLeft (120), juce::Justification::centredLeft);
+    g.setFont (wordmarkFont);
+    g.drawText (wordmark, header.removeFromLeft (wordmarkWidth), juce::Justification::centredLeft);
 
     g.setColour (zither::ui::palette::mist.withAlpha (0.75f));
     g.setFont (zither::ui::palette::font (12.0f, 0.18f));
