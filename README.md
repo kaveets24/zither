@@ -4,6 +4,34 @@ An open-tuned, physically modelled zither instrument (VST3 / AU / Standalone) bu
 The sound it is reaching for is Laraaji's *Flow Goes The Universe* (1992): weightless, cascading shimmer
 over a drone, with strings that never quite stop ringing.
 
+## Install
+
+Download the latest installer from [Releases](https://github.com/kaveets24/zither/releases).
+
+These are free beta builds that aren't code-signed yet, so macOS and Windows warn you before installing. That's expected
+for unsigned software. The full source is in this repository, and each release lists SHA256 checksums in `SHA256SUMS.txt`.
+
+**macOS** (11 Big Sur or later, Apple Silicon or Intel)
+
+1. Open `Zither Aquatica <version>.pkg`.
+2. If macOS says it can't be opened because it's from an unidentified developer, open **System Settings → Privacy &
+   Security**, scroll down to the message about Zither Aquatica, click **Open Anyway** and confirm.
+3. Follow the installer. It installs the VST3 plug-in, the Audio Unit and the Standalone app. Choose **Customize** to skip any of them.
+4. Rescan plug-ins in your DAW. Logic and GarageBand pick up the Audio Unit straight away.
+
+**Windows** (10 or 11, 64-bit)
+
+1. Run `Zither Aquatica <version> Setup.exe`.
+2. If SmartScreen says "Windows protected your PC", click **More info → Run anyway**.
+3. The VST3 goes into `C:\Program Files\Common Files\VST3`, where every VST3 host looks. Rescan plug-ins in your DAW.
+
+Prefer no installer? Unzip `Zither Aquatica <version> VST3 Windows.zip` and copy `Zither Aquatica.vst3` into
+`C:\Program Files\Common Files\VST3`.
+
+**Uninstall.** On macOS, delete `Zither Aquatica.vst3` and `Zither Aquatica.component` from
+`/Library/Audio/Plug-Ins/VST3` and `/Library/Audio/Plug-Ins/Components`, and the app from `/Applications`. On Windows,
+use **Settings → Apps → Zither Aquatica → Uninstall**.
+
 ## Build
 
 Requirements: CMake ≥ 3.22 and the Xcode Command Line Tools (or full Xcode). JUCE 8 and Catch2 are fetched automatically.
