@@ -1,0 +1,5 @@
+#!/bin/sh
+# macOS caches the list of Audio Units. Restarting the registrar makes Logic and GarageBand find the new one
+# without the user logging out.
+killall -9 AudioComponentRegistrar 2>/dev/null || true
+exit 0
